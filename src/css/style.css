@@ -1,0 +1,53 @@
+body, html{
+  padding:5px;
+  margin:0px;
+  height:100%;
+  overflow: hidden;
+}
+
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* Chromium */
+    width: 10px;
+    height: 200px;
+    padding: 0 10px;
+}
+
+input.num {
+  width: 40px;
+}
+
+.container{
+    display: grid;
+    align-items: center;
+    grid-template-rows:0.5fr 1fr;
+    /* grid-template-rows:300px 500px 500px; */
+    grid-template-columns:250px 250px 500px 500px;
+}
+
+.editor{
+  grid-row: 1/2;
+  grid-column: 1/2;
+}
+
+.state_equation{
+  grid-row: 1/2;
+  grid-column: 2/3;
+  font-size: 16px;
+}
+
+.graph_input{
+    grid-row: 2/3;
+    grid-column: 3/4;
+}
+
+.slider{
+    grid-row: 2/3;
+    grid-column: 4/5;
+}
+
+.graph_state{
+    grid-row: 2/3;
+    grid-column: 1/3;
+}

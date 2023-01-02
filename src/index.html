@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Real-time state-space simulator</title>
+    <link rel="stylesheet" href="../lib/katex/katex.min.css">
+    <script src="../lib/katex/katex.min.js"></script>
+    <link rel='stylesheet' href='css/style.css'>
+    <script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" }},
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["$$","$$"] ],
+          processEscapes: true
+        },
+        "HTML-CSS": { matchFontHeight: false },
+        displayAlign: "left",
+        displayIndent: "2em"
+      });
+    </script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type=text/javascript src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="param_table">
+    <table id="tbl">
+      <tr>
+        <td><div id="A"></div></td>
+        <td>
+          <table id="A_tbl">
+            <tr>
+              <td>
+                <input type="number" id="A11" value="0" class="num">
+                <input type="number" id="A12" value="1" class="num">
+              </td>
+            <tr>
+              <td>
+                <input type="number" id="A21" value="-10" class="num">
+                <input type="number" id="A22" value="-1" class="num">
+              </td>
+            </tr>
+          </table>
+        </td>
+      <tr>
+        <td><div id="B"></div></td>
+        <td>
+          <table id="B_tbl">
+            <tr>
+              <td>
+                <input type="number" id="B1" value="0" class="num">
+              </td>
+            <tr>
+              <td>
+                <input type="number" id="B2" value="10" class="num">
+              </td>
+            </tr>
+          </table>
+        </td>
+      <tr>
+        <td><div id="x_0"></div></td>
+        <td>
+          <table id="x0_tbl">
+            <tr>
+              <td><input type="number" id="x0_1" value="0" class="num"></td>
+            <tr>
+              <td><input type="number" id="x0_2" value="0" class="num"></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <button id="apply_button">Apply parameter</button>
+  </div>
+  <div class="state_equation" id="state_equation">
+  </div>
+  <div class="graph_input" id="graph_input"></div>
+  <div class="slider">
+    <input type="range" orient="vertical" id="slider"  min="-10" max="10" step="0.1" value="0">
+  </div>
+  <div class="graph_state" id="graph_state"></div>
+</div>
+
+<script>
+
+const cycle_time = 80
+
+var A, B, x;
+
+function updateEquation(){
+let A11 = document.getElementById("A11").value,
+    A12 = document.getElementById("A12").value,
+    A21 = document.getElementById("A21").value,
+    A22 = document.getElementById("A22").value;
+    B1 = document.getElementById("B1").value;
+    B2 = document.getElementById("B2").value;
+katex.render(
+`
+\\begin{aligned}
+\\frac{d}{dt}\\left[\\begin{array}{l} x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]&=\\left[\\begin{array}{cc}${A11}&${A12}\\\\${A21}&${A22}\\end{array}\\right]\\left[\\begin{array}{l}x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]+\\left[\\begin{array}{c} ${B1}\\\\${B2}\\end{array}\\right] u(t), \\\\
+\\end{aligned}
+`, 
+document.getElementById('state_equation'), {
+  displayMode: true,
+});
+
+katex.render("A=", 
+document.getElementById('A'), {
+  displayMode: true,
+});
+katex.render("B=", 
+document.getElementById('B'), {
+  displayMode: true,
+});
+katex.render("\\left[\\begin{array}{l} x_{1}(0)\\\\x_{2}(0)\\end{array}\\right]=", 
+document.getElementById('x_0'), {
+  displayMode: true,
+});
+}
+
+
+function setParameter() {
+  A = math.matrix([
+      [document.getElementById("A11").value, document.getElementById("A12").value],
+      [document.getElementById("A21").value, document.getElementById("A22").value]]);
+  B = math.matrix([
+      [document.getElementById("B1").value],
+      [document.getElementById("B2").value]]);
+  x = math.matrix([[document.getElementById("x0_1").value],[document.getElementById("x0_2").value]]); //初期状態
+}
+
+function mul(A, B){
+  return math.multiply(A, B);
+}
+function add(A, B){
+  return math.add(A, B);
+}
+// 4次のRungeKutta法で状態を更新する関数
+function rungeKutta(A, B, x, u, dt) {
+  let k1, k2, k3, k4, kk;
+  k1 = add(mul(A, x), mul(B, u));
+  k2 = add(mul(A, add(x, mul(k1, dt/2.0))), mul(B, u));
+  k3 = add(mul(A, add(x, mul(k2, dt/2.0))), mul(B, u));
+  k4 = add(mul(A, add(x, mul(k3, dt))), mul(B, u));
+  kk = mul(math.add(k1, mul(2, k2), mul(2, k3), k4), dt/6.0)
+  x = add(x, kk);
+  return x;
+}
+
+//パラメータの読み込み
+setParameter();
+
+//katexのレンダリング
+updateEquation()
+
+// グラフの設定
+// 入力u(t)のグラフ
+let start_date = new Date();
+let input_elem = document.getElementById('slider');
+let input_value = input_elem.value;
+var data_input = [{
+  x: [0], 
+  y: [input_value],
+  mode: 'lines',
+  line: {color: '#80CAF6'}
+}]
+var layout_input = {
+  // autosize: true,
+  width: 500,
+  height: 300,
+  xaxis: {
+    title: {
+      text: 'time[s]',
+    },
+  },
+  yaxis: {
+    range: [input_elem.min, input_elem.max],
+    title: {
+      text: '$u(t)$',
+    }
+  }
+};
+Plotly.plot('graph_input', data_input, layout_input);
+
+// 状態のグラフ
+var data_state = [{
+  x: [x._data[0][0]], 
+  y: [x._data[1][0]],
+  mode: 'scatter',
+  line: {color: '#80CAF6'}
+}]
+var layout_state = {
+  width: 500,
+  height: 500,
+  xaxis: {
+    range: [-50, 50],
+    title: {
+      text: '$x_1(t)$',
+    },
+  },
+  yaxis: {
+    range: [-50, 50],
+    title: {
+      text: '$x_2(t)$',
+      font: {
+      }
+    }
+  }
+};
+Plotly.plot('graph_state', data_state, layout_state);
+
+// 定周期で呼び出す関数
+let interval = setInterval(function() {
+  let now_date = new Date();
+  let time = (now_date.getTime() - start_date.getTime()) /1000; // 経過時間[s]
+  input_value = input_elem.value;
+  let update_input = {
+  x:  [[time]],
+  y: [[input_value]]
+  }
+
+  let minuteView = {
+        xaxis: {
+          title: 'time[s]',
+          type: 'time',
+          range: [time-30,time+1]
+        }
+      };
+  Plotly.relayout('graph_input', minuteView);
+  Plotly.extendTraces('graph_input', update_input, [0])
+
+  // 状態の更新
+  x = rungeKutta(A, B, x, input_value, cycle_time/1000)
+  let update_state = {
+  x:  [[x._data[0][0]]],
+  y: [[x._data[1][0]]]
+  }
+  Plotly.extendTraces('graph_state', update_state, [0])
+}, cycle_time);
+
+// パラメータを適用するボタンの動作
+document.getElementById('apply_button').addEventListener('click', function() {
+  start_date = new Date();
+  setParameter();
+  document.getElementById('slider').value = 0;
+  input_value = document.getElementById('slider').value;
+  Plotly.deleteTraces('graph_state', 0);
+  Plotly.deleteTraces('graph_input', 0);
+  data_input = [{
+    x: [0], 
+    y: [input_value],
+    mode: 'lines',
+    line: {color: '#80CAF6'}
+  }]
+  Plotly.plot('graph_input', data_input, layout_input);
+    
+  data_state = [{
+    x: [x._data[0][0]], 
+    y: [x._data[1][0]],
+    mode: 'scatter',
+    line: {color: '#80CAF6'}
+  }]
+  Plotly.plot('graph_state', data_state, layout_state);
+  
+  updateEquation()
+});
+</script>
+
+</body>
+
