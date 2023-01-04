@@ -103,7 +103,7 @@ let A11 = document.getElementById("A11").value,
 katex.render(
 `
 \\begin{aligned}
-\\frac{d}{dt}\\left[\\begin{array}{l} x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]&=\\left[\\begin{array}{cc}${A11}&${A12}\\\\${A21}&${A22}\\end{array}\\right]\\left[\\begin{array}{l}x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]+\\left[\\begin{array}{c} ${B1}\\\\${B2}\\end{array}\\right] u(t), \\\\
+\\frac{d}{dt}\\left[\\begin{array}{l} x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]&=\\left[\\begin{array}{cc}${A11}&${A12}\\\\${A21}&${A22}\\end{array}\\right]\\left[\\begin{array}{l}x_{1}(t)\\\\x_{2}(t)\\end{array}\\right]+\\left[\\begin{array}{c} ${B1}\\\\${B2}\\end{array}\\right] u(t)\\\\
 \\end{aligned}
 `, 
 document.getElementById('state_equation'), {
